@@ -41,30 +41,34 @@ main:   la $a0, array        		# a0 points into array
 #	$t5: q - 1
 #	$t6: *(q-1) > tmp
 #	$t7: = t4 && t5
-isort:	add $t0, $0, $a0		# int *p = a;
+isort:	
+	add $t0, $0, $a0		# int *p = a;
 	add $t1, $0, $0			# int *q;
 	add $t2, $0, $0			# int  tmp;
 	add $t3, $a0, $a1
 	j f_test
-loop: 	add $t1, $0, $t0		# q = p;
-	lw $t2, 0($t0)			# tmp = *p;
 
-while_test: 				# while ((q > a) && (*(q-1) > tmp)) {
+f_loop: 	
+	add $t1, $0, $t0		# q = p;
+	lw $t2, 0($t0)			# tmp = *p;
+	j w_test
+
+w_loop:
+	sw $t5, 0($t1)			#	    *q = *(q-1);
+	addi $t1, $t1, -1 		#            q--;
+					#        }
+w_test: 				# while ((q > a) && (*(q-1) > tmp)) {
 	slt $t4, $a1, $t1		# t4 = (a < q)			
 	addi $t5, $t1, -1		# t5 = q-1
 	sgt $t6, $t5, $t4		# t6 = t5 > tmp
 	and $t7, $t4, $t6		# t7 = t4 && t6
-	beq $t7, $0, done_while
-
-	sw $t5, 0($t1)			#	    *q = *(q-1);
-	addi $t1, $t1, -1 		#            q--;
-					#        }
-done_while:
+	bne $t7, $0, w_loop
+w_done:
 	sw $t2, 0($t1)			#       *q = tmp;
 					#    }
 					# }
 f_test: 				# for (++p;  p < a+asize; p++) {
-	blt $t0, $t3, loop	
+	blt $t0, $t3, f_loop	
 	jr $ra
 
 
@@ -78,13 +82,15 @@ f_test: 				# for (++p;  p < a+asize; p++) {
 print_arr: 
 	add $t0, $0, $a0 
         li $t3, 0		# initialize counter
-        j w_test               	# jump to test 
-next:   lw $t2, 0($t0)       	# get next array element
+        j w_test2               # jump to test 
+next:   
+	lw $t2, 0($t0)       	# get next array element
 	add $a0, $0, $t2 	# move integer to be printed into $a0:  $a0 = $t2
 	li $v0, 1 		#syscall to print int
 	syscall			# call operating system to perform print
         addi $t0, $t0, 4      	# point to next word
         addi $t3, $t3, 1     	# count++
-w_test: blt $t3, $a1, next    	# while t3 < len(arr) do
+w_test2:
+	blt $t3, $a1, next    	# while t3 < len(arr) do
 	jr $ra
 
