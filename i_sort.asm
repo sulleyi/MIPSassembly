@@ -3,7 +3,7 @@
 
         .data
 array:  .word -123, 548, 923, 431, 560, -348, 961
-endarr: 
+endarr: .word 7 
         .text
         .align 2
 main:   la $a0, array        		# a0 points into array
@@ -40,30 +40,30 @@ main:   la $a0, array        		# a0 points into array
 ##
 #	$t0: pointer to int p - address of first unsorted index
 #	$t1: pointer to int q - address of test index
-#	$t2: temp storage of current value being sorted
-#	$t3: mem address of end of array  
-#	$s0: = value in test index
-#	$s1: = address end index -4
+#	$t2: value @ test index
+#	$t3: mem address of beginning of array  
+#	$s0: value to insert
+#	$s1: address of last array element
 isort:	
-	la $t0, array			# t0 = array base address address
+	la $t0, array			# t0 = array base address
 	addi $t0, $t0, 4		# t0 = first unsorted address
 	#add $t3, $0, $a1		
 	la $t3, endarr 			# t3 = end array address
 	addi $s1, $t3, -4		# s1 = address of last array element 
+	la $t3, array
 f_test: 				# for (++p;  p < a+asize; p++) {
 	bgt $t0, $s1, f_done		# branch if first unsorted index > end address
 	addi $t1, $t0, -4		# t1 = address of next item to sort
-	lw $t2, 0($t0)			# t2 = current value pointed to by t0
-w_test: 				# while ((q > a) && (*(q-1) > tmp)) {
+	lw $s0, 0($t0)			# t2 = current value pointed to by t0
+while: 					# while ((q > a) && (*(q-1) > tmp)) {
 	blt $t1, $t3, w_done		# branch if address of item to sort < end address			
-	lw $s0, 0($t1)			# s0 = value of next item to sort
-	ble $s0, $t2, w_done		# branch if value of next item to sort <= current unsorted value
-w_loop:
-	sw $s0, 4($t1)			# save value of next item to sort into next address
+	lw $t2, 0($t1)			# s0 = value of next item to sort
+	ble $t2, $s0, w_done		# branch if value of next item to sort <= current unsorted value
+	sw $t2, 4($t1)			# insert value into next address
 	addi $t1, $t1, -4 		# move pointer; get address of next index to sort
-	j w_test			# jump to while test
+	j while				# jump to while test
 w_done:
-	sw $t2, 4($t1)			# save value at first unsorted index into next address 
+	sw $s0, 4($t1)			# save value at first unsorted index into next address 
 	addi $t0, $t0, 4		# move pointer of unsorted index forward 
 	j f_test			# jump to for test
 f_done:
