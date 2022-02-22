@@ -16,10 +16,14 @@ main:   la $a0, array        		# a0 points into array
 
 	la $a0, array        		# a0 points into array
         la $a1, endarr       		# a1 points to array end
+        sub $a1, $a1, $a0    		# a1 = &endarr - &arr   <-- len(arr) in bytes
+        srl $a1, $a1, 2      		# a1 = a1/4   <-- len(arr) in words
         jal isort 			# sort arr
 
 	la $a0, array        		# a0 points into array
         la $a1, endarr       		# a1 points to array end
+        sub $a1, $a1, $a0    		# a1 = &endarr - &arr   <-- len(arr) in bytes
+        srl $a1, $a1, 2      		# a1 = a1/4   <-- len(arr) in words
 	jal print_arr 			# print out the sorted array
 	
 	lw $ra, 0($sp)       		# pop
@@ -30,46 +34,40 @@ main:   la $a0, array        		# a0 points into array
 	jr $ra
 
 ## insertion sort subroutine
-# register use:
-#	$a0: parameter: pointer-to-int array
-#	$a1: parameter: size of array in ints/words
-#	$t0: pointer to int p
-#	$t1: pointer to int q
+# register used
+#	$a0: parameter: pointer-to-int array - Base address
+#	$a1: parameter: size of array in bytes
+##
+#	$t0: pointer to int p - address of first unsorted index
+#	$t1: pointer to int q - address of test index
 #	$t2: temp storage of current value being sorted
 #	$t3: mem address of end of array  
-#	$t4: a < q
-#	$t5: q - 1
-#	$t6: *(q-1) > tmp
-#	$t7: = t4 && t5
+#	$s0: = value in test index
+#	$s1: = address end index -4
 isort:	
-	add $t0, $0, $a0		# int *p = a;
-	add $t1, $0, $0			# int *q;
-	add $t2, $0, $0			# int  tmp;
-	add $t3, $a0, $a1
-	j f_test
-
-f_loop: 	
-	add $t1, $0, $t0		# q = p;
-	lw $t2, 0($t0)			# tmp = *p;
-	j w_test
-
-w_loop:
-	sw $t5, 0($t1)			#	    *q = *(q-1);
-	addi $t1, $t1, -1 		#            q--;
-					#        }
-w_test: 				# while ((q > a) && (*(q-1) > tmp)) {
-	slt $t4, $a1, $t1		# t4 = (a < q)			
-	addi $t5, $t1, -1		# t5 = q-1
-	sgt $t6, $t5, $t4		# t6 = t5 > tmp
-	and $t7, $t4, $t6		# t7 = t4 && t6
-	bne $t7, $0, w_loop
-w_done:
-	sw $t2, 0($t1)			#       *q = tmp;
-					#    }
-					# }
+	la $t0, array			# t0 = array base address address
+	addi $t0, $t0, 4		# t0 = first unsorted address
+	#add $t3, $0, $a1		
+	la $t3, endarr 			# t3 = end array address
+	addi $s1, $t3, -4		# s1 = address of last array element 
 f_test: 				# for (++p;  p < a+asize; p++) {
-	blt $t0, $t3, f_loop	
-	jr $ra
+	bgt $t0, $s1, f_done		# branch if first unsorted index > end address
+	addi $t1, $t0, -4		# t1 = address of next item to sort
+	lw $t2, 0($t0)			# t2 = current value pointed to by t0
+w_test: 				# while ((q > a) && (*(q-1) > tmp)) {
+	blt $t1, $t3, w_done		# branch if address of item to sort < end address			
+	lw $s0, 0($t1)			# s0 = value of next item to sort
+	ble $s0, $t2, w_done		# branch if value of next item to sort <= current unsorted value
+w_loop:
+	sw $s0, 4($t1)			# save value of next item to sort into next address
+	addi $t1, $t1, -4 		# move pointer; get address of next index to sort
+	j w_test			# jump to while test
+w_done:
+	sw $t2, 4($t1)			# save value at first unsorted index into next address 
+	addi $t0, $t0, 4		# move pointer of unsorted index forward 
+	j f_test			# jump to for test
+f_done:
+	jr $ra				# jump to return address	
 
 
 ##print_arr
@@ -86,7 +84,7 @@ print_arr:
 next:   
 	lw $t2, 0($t0)       	# get next array element
 	add $a0, $0, $t2 	# move integer to be printed into $a0:  $a0 = $t2
-	li $v0, 1 		#syscall to print int
+	li $v0, 1 		# syscall to print int
 	syscall			# call operating system to perform print
         addi $t0, $t0, 4      	# point to next word
         addi $t3, $t3, 1     	# count++
