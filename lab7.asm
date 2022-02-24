@@ -112,4 +112,56 @@ nil:	move $v1, $a0		# if the value in the first free node is NIL, it is still fr
 # 	v0 should contain the new pointer to our linked list
 #	$v1 should contain the new pointer to free
 
-$
+		# ------ a node has              \
+		# | ---|---> a pointer-to-node field 
+		# ------    a data field             
+		# | 17 | and it has the type-name: Node   
+		# ------
+		#typedef struct node {
+		#    struct node *next   
+		#    int data;           
+		#    } Node;
+		#
+insert:				#insert(int N, Node *listptr)
+				#{
+				#   tmpptr = new Node();
+				#   tmptr.data = N;
+				#   if listptr == Nil or N < listptr.data
+				#   {
+				#      tmpptr.next = listptr
+				#      listptr = tmpptr
+				#   }
+				#   else 
+				#   {
+				#      curptr = listptr
+				#      while curptr.next != Nil and curptr.next.data <= N
+				#      {
+				#         curptr = curptr.next
+				#      }
+				#      tmpptr.next = curptr.next
+				#      curptr.next = tmpptr
+				#   }
+				#   return listptr
+				#}
+
+##print_arr
+## register use:
+##	$a0: parameter: array addr; used as pointer to current element
+##	$a1: parameter: size of arr 
+##	$v0: accumulator and return value
+##	$t2: temporary copy of current array element
+##	$t0: a0 from first call to print_arr 
+print_arr: 
+	add $t0, $0, $a0 
+        li $t3, 0		# initialize counter
+        j w_test2               # jump to test 
+next:   
+	lw $t2, 0($t0)       	# get next array element
+	add $a0, $0, $t2 	# move integer to be printed into $a0:  $a0 = $t2
+	li $v0, 1 		# syscall to print int
+	syscall			# call operating system to perform print
+        addi $t0, $t0, 4      	# point to next word
+        addi $t3, $t3, 1     	# count++
+w_test2:
+	blt $t3, $a1, next    	# while t3 < len(arr) do
+	jr $ra
