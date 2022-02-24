@@ -97,7 +97,7 @@ new:
 	lw $t0, 0($a0)		# load value at first free node
 	move $v0, $t0 		# move value in free node to v0
 	beq $t0, $0, nil	# branch if first free value is NIL
-	addi $v1, $a0, 4	# point to next free node
+	addi $v1, $a0, NODESIZE	# point to next free node
 nil:	move $v1, $a0		# if the value in the first free node is NIL, it is still free.
 	jr $ra	
 
@@ -124,25 +124,34 @@ nil:	move $v1, $a0		# if the value in the first free node is NIL, it is still fr
 		#
 insert:				#insert(int N, Node *listptr)
 				#{
-				#   tmpptr = new Node();
-				#   tmptr.data = N;
-				#   if listptr == Nil or N < listptr.data
-				#   {
-				#      tmpptr.next = listptr
-				#      listptr = tmpptr
+				#   tmpptr = new Node(); -> in $a2
+	sw $a0, DATASIZE($a2)	#   tmptr.data = N;
+	bne $a1, $0, else	#   if listptr == Nil or N < listptr.data TODO make sure this is OR not AND
+	lw $t0, DATASIZE($a1)	# $t0 = listptr.data
+	sgt $t1, $t0, $a0  	#   { $t1 = 1 if  N < listptr.data; 0 otherwise
+	beq $t1, $0. else	
+	sw $a1, NODESIZE($a2)	#      tmpptr.next = listptr
+	sw $a2	$a1		#      listptr = tmpptr
 				#   }
-				#   else 
+else:				#   else 
 				#   {
-				#      curptr = listptr
-				#      while curptr.next != Nil and curptr.next.data <= N
+	move $t2, $a1		#      curptr = listptr
+while:				#      while curptr.next != Nil and curptr.next.data <= N
+	lw $t3, NODESIDE($t2)   # t3 = curptr.next
+	lw $t4, DATASIZE($t3)   # t4 = curptr.next.data
+
+	beq $t3, 0, w _end
+	sgt $t5, $t4, $a0	# t5 = curptr.next.data > N
+	bne $t5, $0, w_end 
 				#      {
-				#         curptr = curptr.next
+	sw $t3, 0($t2)		#         curptr = curptr.next
 				#      }
-				#      tmpptr.next = curptr.next
-				#      curptr.next = tmpptr
+w_end:				#
+	sw $t3, NODESIZE($a2)	#      tmpptr.next = curptr.next
+	sw $a2, $t3		#      curptr.next = tmpptr
 				#   }
-				#   return listptr
-				#}
+	move $v0, $a1		#   return listptr
+	jr $ra			#}
 
 ##print_arr
 ## register use:
