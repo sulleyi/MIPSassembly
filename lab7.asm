@@ -40,7 +40,7 @@ main:   addi $sp, $sp, -4
         li $a1, HEAPSIZE	#      and its size
         li $a2, NODESIZE 	#      and the size of a node
         jal mknodes
-
+	
 
 ###   Insert the values in the input array by calling insert for each one.
 ###   When the insertion is done, store the list pointer in the list variable
@@ -129,9 +129,9 @@ insert:				#insert(int N, Node *listptr)
 	bne $a1, $0, else	#   if listptr == Nil or N < listptr.data TODO make sure this is OR not AND
 	lw $t0, DATASIZE($a1)	# $t0 = listptr.data
 	sgt $t1, $t0, $a0  	#   { $t1 = 1 if  N < listptr.data; 0 otherwise
-	beq $t1, $0. else	
+	beq $t1, $0, else	
 	sw $a1, NODESIZE($a2)	#      tmpptr.next = listptr
-	sw $a2	$a1		#      listptr = tmpptr
+	sw $a2,	0($a1)		#      listptr = tmpptr
 				#   }
 else:				#   else 
 				#   {
@@ -140,7 +140,7 @@ while:				#      while curptr.next != Nil and curptr.next.data <= N
 	lw $t3, NODESIDE($t2)   # t3 = curptr.next
 	lw $t4, DATASIZE($t3)   # t4 = curptr.next.data
 
-	beq $t3, 0, w _end
+	beq $t3, $0, w_end
 	sgt $t5, $t4, $a0	# t5 = curptr.next.data > N
 	bne $t5, $0, w_end 
 				#      {
@@ -148,7 +148,7 @@ while:				#      while curptr.next != Nil and curptr.next.data <= N
 				#      }
 w_end:				#
 	sw $t3, NODESIZE($a2)	#      tmpptr.next = curptr.next
-	sw $a2, $t3		#      curptr.next = tmpptr
+	sw $a2, 0($t3)		#      curptr.next = tmpptr
 				#   }
 	move $v0, $a1		#   return listptr
 	jr $ra			#}
