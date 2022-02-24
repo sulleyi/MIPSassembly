@@ -94,7 +94,12 @@ mkloop: sub $t1, $t0, $a2       # t1 points to previous node-sized block
 #    $v0: the node we have "created" (pulled off the stack from free)
 #    $v1: the new value of free (we don't want to clobber $a0 when we change free, right? right?)
 new:
-        jr $ra
+	lw $t0, 0($a0)		# load value at first free node
+	move $v0, $t0 		# move value in free node to v0
+	beq $t0, $0, nil	# branch if first free value is NIL
+	addi $v1, $a0, 4	# point to next free node
+nil:	move $v1, $a0		# if the value in the first free node is NIL, it is still free.
+	jr $ra	
 
 
 #insert behaves as described in the lab text
