@@ -123,25 +123,25 @@ nil:	move $v1, $a0		# if the value in the first free node is NIL, it is still fr
 		#    } Node;
 		#
 insert:				#insert(int N, Node *listptr)
-				#{
-				#   tmpptr = new Node(); -> in $a2
-	sw $a0, DATASIZE($a2)	#   tmptr.data = N;
-	bne $a1, $0, else	#   if listptr == Nil or N < listptr.data TODO make sure this is OR not AND
+	move $t7, $a0		#t7 = N
+	move $a0, $a2		#{
+	jal new			#   tmpptr = new Node(); -> in $a2
+	sw $t7, DATASIZE($a2)	#   tmptr.data = N;
+if:	bne $a1, $0, else	#   if listptr == Nil or N < listptr.data TODO make sure this is OR not AND
 	lw $t0, DATASIZE($a1)	# $t0 = listptr.data
-	sgt $t1, $t0, $a0  	#   { $t1 = 1 if  N < listptr.data; 0 otherwise
+	sgt $t1, $t0, $t7  	#   { $t1 = 1 if  N < listptr.data; 0 otherwise
 	beq $t1, $0, else	
 	sw $a1, NODESIZE($a2)	#      tmpptr.next = listptr
 	sw $a2,	0($a1)		#      listptr = tmpptr
 				#   }
-else:				#   else 
-				#   {
-	move $t2, $a1		#      curptr = listptr
-while:				#      while curptr.next != Nil and curptr.next.data <= N
-	lw $t3, NODESIDE($t2)   # t3 = curptr.next
-	lw $t4, DATASIZE($t3)   # t4 = curptr.next.data
+else:				# else 
+	move $t2, $a1		#	curptr = listptr
+while:				# while curptr.next != Nil and curptr.next.data <= N
+	lw $t3, NODESIDE($t2)   #	t3 = curptr.next
+	lw $t4, DATASIZE($t3)   #	t4 = curptr.next.data
 
 	beq $t3, $0, w_end
-	sgt $t5, $t4, $a0	# t5 = curptr.next.data > N
+	sgt $t5, $t4, $t7	# 	t5 = curptr.next.data > N
 	bne $t5, $0, w_end 
 				#      {
 	sw $t3, 0($t2)		#         curptr = curptr.next
