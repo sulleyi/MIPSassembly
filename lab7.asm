@@ -23,10 +23,11 @@ HEAPSIZE = 120  ##NODESIZE*NUMNODES
 NIL      = 0                    ## for null pointer
 
         .data
-input: .word 5 ## you add more numbers here  (no more than NUMNODES)
+input: .word 5, 7, 25, 9, 8, -14 ## you add more numbers here  (no more than NUMNODES)
 inp_end:
 INSIZE = 1 #(inp_end - input)/4    # number of input array elements
 
+list:   .space  4
 heap:   .space  HEAPSIZE           # storage for nodes 
 spce:   .asciiz "  "
 nofree: .asciiz "Out of free nodes; terminating program\n"
@@ -40,7 +41,7 @@ main:   addi $sp, $sp, -4
         li $a1, HEAPSIZE	#      and its size
         li $a2, NODESIZE 	#      and the size of a node
         jal mknodes
-	
+
 
 ###   Insert the values in the input array by calling insert for each one.
 ###   When the insertion is done, store the list pointer in the list variable
@@ -48,9 +49,10 @@ main:   addi $sp, $sp, -4
 ###   REMOVE these comment lines before turning in the program.
 
 	#initially our linked list will be empty (nil)
-	#lw, $a0, input
-	#li, $a1, nil
-	#move $a2, $v0  #presuming $v0 contains a pointer to free after mknodes is called
+	lw, $a0, input
+	li, $a1, 10010000
+	move $a2, $v0  #presuming $v0 contains a pointer to free after mknodes is called 
+	jal insert
 
 done:   lw $ra, 0($sp)
         addi $sp, $sp, 4
@@ -122,22 +124,24 @@ nil:	move $v1, $a0		# if the value in the first free node is NIL, it is still fr
 		#    int data;           
 		#    } Node;
 		#
-insert:				#insert(int N, Node *listptr)
-	move $t7, $a0		#t7 = N
-	move $a0, $a2		#{
-	jal new			#   tmpptr = new Node(); -> in $a2
-	sw $t7, DATASIZE($a2)	#   tmptr.data = N;
+insert:				# insert(int N, Node *listptr)
+	move $t7, $a0		# t7 = N
+	move $a0, $a2		# $a0 = ptr to free
+	jal new			#   tmpptr = new Node();
+	move $t6, $v0		#   $t6 = tmpptr
+	move $a2, $v1		#   point to free
+	sw $t7, DATASIZE($t6)	#   tmptr.data = N;
 if:	bne $a1, $0, else	#   if listptr == Nil or N < listptr.data TODO make sure this is OR not AND
-	lw $t0, DATASIZE($a1)	# $t0 = listptr.data
+	lw $t0, DATASIZE($a1)	#   $t0 = listptr.data
 	sgt $t1, $t0, $t7  	#   { $t1 = 1 if  N < listptr.data; 0 otherwise
 	beq $t1, $0, else	
-	sw $a1, NODESIZE($a2)	#      tmpptr.next = listptr
-	sw $a2,	0($a1)		#      listptr = tmpptr
+	sw $a1, NODESIZE($t6)	#      tmpptr.next = listptr
+	sw $t6,	0($a1)		#      listptr = tmpptr
 				#   }
 else:				# else 
 	move $t2, $a1		#	curptr = listptr
 while:				# while curptr.next != Nil and curptr.next.data <= N
-	lw $t3, NODESIDE($t2)   #	t3 = curptr.next
+	lw $t3, NODESIZE($t2)   #	t3 = curptr.next
 	lw $t4, DATASIZE($t3)   #	t4 = curptr.next.data
 
 	beq $t3, $0, w_end
@@ -147,10 +151,11 @@ while:				# while curptr.next != Nil and curptr.next.data <= N
 	sw $t3, 0($t2)		#         curptr = curptr.next
 				#      }
 w_end:				#
-	sw $t3, NODESIZE($a2)	#      tmpptr.next = curptr.next
-	sw $a2, 0($t3)		#      curptr.next = tmpptr
+	sw $t3, NODESIZE($t6)	#      tmpptr.next = curptr.next
+	sw $t6, 0($t3)		#      curptr.next = tmpptr
 				#   }
 	move $v0, $a1		#   return listptr
+	move $v1, $a2		# v1 = pointer to free
 	jr $ra			#}
 
 ##print_arr
