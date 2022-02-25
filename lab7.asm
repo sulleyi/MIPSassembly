@@ -31,6 +31,8 @@ list:   .space  4
 heap:   .space  HEAPSIZE           # storage for nodes 
 spce:   .asciiz "  "
 nofree: .asciiz "Out of free nodes; terminating program\n"
+unsorted: .asciiz "Unsorted List: "
+sorted: .asciiz "\nSorted List: "
 
         .align 2
         .text
@@ -48,12 +50,15 @@ main:   addi $sp, $sp, -4
 ###   and then call a subroutine to traverse the list and print its contents
 ###   REMOVE these comment lines before turning in the program.
 
-	#initially our linked list will be empty (nil)
-	lw, $a0, input
-	li, $a1, 10010000
+	lw $s0, input
+iter:	beq $s0, $0, done	
+	add $a0, $s3, $0 #load N`
+	li $a1, NIL   #initially our linked list will be empty (nil)
 	move $a2, $v0  #presuming $v0 contains a pointer to free after mknodes is called 
 	jal insert
-
+	addi $s1, $s1, 4 #counter
+	add $s0, $s0, $s1
+	j iter
 done:   lw $ra, 0($sp)
         addi $sp, $sp, 4
         jr $ra
