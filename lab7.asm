@@ -1,5 +1,6 @@
 #  Linked structures in assembler       D. Hemmendinger  24 January 2009
 #  Linked structures in assembler       J. Rieffel 15 February 2011
+#  Linked structures in assembler       I. Sulley 22 February 2022
 # (removed dependance on in-line constant definitions)
 #  This program builds a heap as a singly-linked list of nodes that
 #  are then used to build a singly-linked list of numbers.
@@ -30,8 +31,8 @@ INSIZE = 1 #(inp_end - input)/4    # number of input array elements
 list:   .space  4
 heap:   .space  HEAPSIZE           # storage for nodes 
 spce:   .asciiz "  "
-nofree: .asciiz "Out of free nodes; terminating program\n"
-unsorted: .asciiz "Unsorted List: "
+nofree: .asciiz "\nOut of free nodes; terminating program"
+unsorted: .asciiz "\nUnsorted List: "
 sorted: .asciiz "\nSorted List: "
 
         .align 2
@@ -50,16 +51,26 @@ main:   addi $sp, $sp, -4
 ###   and then call a subroutine to traverse the list and print its contents
 ###   REMOVE these comment lines before turning in the program.
 
-	lw $s0, input
-iter:	beq $s0, $0, done	
-	add $a0, $s3, $0 #load N`
-	li $a1, NIL   #initially our linked list will be empty (nil)
+	la $s0, input
+	lw $a0, 0($s0) #load first N
+	move $a1, $s7   #initially our linked list will be empty (nil)
 	move $a2, $v0  #presuming $v0 contains a pointer to free after mknodes is called 
+	beq $a0, $0, done	
 	jal insert
-	addi $s1, $s1, 4 #counter
-	add $s0, $s0, $s1
+	sw $v0, list	
+	addi $s1, $s1, 1 # increment index counter
+iter:	sll $s2, $s1, 2  # increment byte counter
+	add $s2, $s0, $s2# start add + index byte offset
+	lw $a0, 0($s0)   #load value at current index
+	move $a1, $s7   #initially our linked list will be empty (nil)
+	move $a2, $v0  #presuming $v0 contains a pointer to free after mknodes is called 
+	beq $a0, $0, done	
+	jal insert
+	addi $s1, $s1, 1
 	j iter
-done:   lw $ra, 0($sp)
+done:   move $a0, $v0
+	jal print
+	lw $ra, 0($sp)
         addi $sp, $sp, 4
         jr $ra
 
@@ -128,15 +139,17 @@ nil:	move $v1, $a0		# if the value in the first free node is NIL, it is still fr
 		#    struct node *next   
 		#    int data;           
 		#    } Node;
-		#
-insert:				# insert(int N, Node *listptr)
-	move $t7, $a0		# t7 = N
-	move $a0, $a2		# $a0 = ptr to free
+insert:				#   insert(int N, Node *listptr)
+	addi $sp, $sp, -8       #   allocate space on the stack
+        sw $ra, 0($sp)		#   push $ra to the stack
+        sw $a0, 4($sp)          #   push $a0 to stack
+	move $a0, $a2		#   $a0 = ptr to free
 	jal new			#   tmpptr = new Node();
+	lw $a0, 4($sp)          #   restore $a0 from stack
 	move $t6, $v0		#   $t6 = tmpptr
 	move $a2, $v1		#   point to free
 	sw $t7, DATASIZE($t6)	#   tmptr.data = N;
-if:	bne $a1, $0, else	#   if listptr == Nil or N < listptr.data TODO make sure this is OR not AND
+if:	bne $a1, $0, else	#   if listptr == Nil or N < listptr.data 
 	lw $t0, DATASIZE($a1)	#   $t0 = listptr.data
 	sgt $t1, $t0, $t7  	#   { $t1 = 1 if  N < listptr.data; 0 otherwise
 	beq $t1, $0, else	
@@ -167,10 +180,9 @@ w_end:				#
 ## register use:
 ##	$a0: parameter: array addr; used as pointer to current element
 ##	$a1: parameter: size of arr 
-##	$v0: accumulator and return value
 ##	$t2: temporary copy of current array element
 ##	$t0: a0 from first call to print_arr 
-print_arr: 
+print: 
 	add $t0, $0, $a0 
         li $t3, 0		# initialize counter
         j w_test2               # jump to test 
