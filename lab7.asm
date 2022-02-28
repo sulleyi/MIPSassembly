@@ -172,9 +172,9 @@ while:				# while curptr.next != Nil and curptr.next.data <= N
 				#      {
 	move $t2, $t3		#         curptr = curptr.next
 	j while			#      }
-w_end:				#
-	sw $t3, NEXT($t0)	#      tmpptr.next = curptr.next
-	sw $t0, NEXT($t3)	#      curptr.next = tmpptr
+w_end:	lw $t5, NEXT($t2)	#
+	sw $t5, NEXT($t0)	#      tmpptr.next = curptr.next
+	sw $t0, NEXT($t2)	#      curptr.next = tmpptr
 				#   }
 done2:	move $v0, $a1		#   return listptr
 	move $v1, $a2		# v1 = pointer to free
