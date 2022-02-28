@@ -50,14 +50,13 @@ main:   addi $sp, $sp, -4
 	move $a2, $v0  #presuming $v0 contains a pointer to free after mknodes is called 
 	beq $a0, $0, done	
 	jal insert
-	sw $v0, list	
-	addi $s1, $s1, 1 # increment index counter
+	addi $s1, $0, 1 # increment index counter
 iter:	sll $s2, $s1, 2  # increment byte counter
 	add $s2, $s0, $s2# start add + index byte offset
-	lw $a0, 0($s0)   #load value at current index
-	move $a1, $s7   #initially our linked list will be empty (nil)
-	move $a2, $v0  #presuming $v0 contains a pointer to free after mknodes is called 
-	beq $a0, $0, done	
+	lw $a0, 0($s2)   #load value at current index
+	move $a1, $v0   #initially our linked list will be empty (nil)
+	move $a2, $v1  #presuming $v0 contains a pointer to free after mknodes is called 
+	beq $a0, $s7, done	
 	jal insert
 	addi $s1, $s1, 1
 	j iter
@@ -105,11 +104,11 @@ mkloop: sub $t1, $t0, $a2       # t1 points to previous node-sized block
 #    $v0: the node we have "created" (pulled off the stack from free)
 #    $v1: the new value of free (we don't want to clobber $a0 when we change free, right? right?)
 new:
-	bne $a0, NIL, nil	# branch if first free value is not NIL
+	bne $a0, NIL, free	# branch if first free value is not NIL
 	move $v0, $s7
 	move $v1, $s7
 	j nil
-	move $v0, $a0
+free:	move $v0, $a0
 	lw $v1, NEXT($a0)		# load value at first free node
 	sw $v0, NEXT($v0)		# point to next free node
 nil:	# if the value in the first free node is NIL, it is still free.
@@ -162,8 +161,8 @@ if:	sw $a1, NEXT($t0)	#      tmpptr.next = listptr
 else:	move $t2, $a1		# else curptr = listptr
 while:				# while curptr.next != Nil and curptr.next.data <= N
 	lw $t3, NEXT($t2)   	#	t3 = curptr.next
-	lw $t4, DATASIZE($t3)   #	t4 = curptr.next.data
 	beq $t3, $s7, w_end
+	lw $t4, DATASIZE($t3)   #	t4 = curptr.next.data
 	blt $a0, $t4, w_end 
 				#      {
 	move $t2, $t3		#         curptr = curptr.next
@@ -173,7 +172,6 @@ w_end:	lw $t5, NEXT($t2)	#
 	sw $t0, NEXT($t2)	#      curptr.next = tmpptr
 				#   }
 done2:	move $v0, $a1		#   return listptr
-	move $v1, $a2		# v1 = pointer to free
 	lw $ra, 0($sp)		# pop $ra from stack
 	addi $sp, $sp, 8	# reset stack 
 	jr $ra			#}
