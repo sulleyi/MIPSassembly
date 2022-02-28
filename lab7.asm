@@ -156,13 +156,10 @@ insert:				#   insert(int N, Node *listptr)
 	lw $a0, 4($sp)          #   restore $a0 from stack
 	beq $v0, $s7, node
 	move $t0, $v0		#   $t0 = tmpptr
-	sw $a0, DATA($t0)	#   tmpptr.data = N
-	move $a2, $v1		#   point to free
-	sw $t7, DATASIZE($t0)	#   tmptr.data = N;
+	sw $a0, DATASIZE($t0)	#   tmptr.data = N;
 	beq $a1, $s7, if	#   if listptr == Nil or N < listptr.data 
-	lw $t0, DATASIZE($a1)	#   $t0 = listptr.data
-	sgt $t1, $t0, $t7  	#   { $t1 = 1 if  N < listptr.data; 0 otherwise
-	beq $t1, $0, else	
+	lw $t1, DATASIZE($a1)  	#   { $t1 = 1 if  N < listptr.data; 0 otherwise
+	ble $t1, $a0, else	
 if:	sw $a1, NEXT($t0)	#      tmpptr.next = listptr
 	move $a1, $t0		#      listptr = tmpptr
 	j done2			#   }
