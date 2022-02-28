@@ -121,6 +121,14 @@ nil:	move $v1, $a0		# if the value in the first free node is NIL, it is still fr
 
 
 #insert behaves as described in the lab text
+#
+# registers used:
+# 	 $t0: tmpptr
+#	 $t1: if flag
+#	 $t2: curptr
+#	 $t3: curptr.next
+#	 $t4: curptr.next.data
+#	 $t5: while flag
 # inputs:
 #	 $a0: should contain N
 #	 $a1: should contain a pointer to our linked list
@@ -144,36 +152,37 @@ insert:				#   insert(int N, Node *listptr)
         sw $ra, 0($sp)		#   push $ra to the stack
         sw $a0, 4($sp)          #   push $a0 to stack
 	move $a0, $a2		#   $a0 = ptr to free
-	jal new			#   tmpptr = new Node();
+	jal new			#   v0 = new Node();
 	lw $a0, 4($sp)          #   restore $a0 from stack
-	move $t6, $v0		#   $t6 = tmpptr
+	move $t0, $v0		#   $t0 = tmpptr
 	move $a2, $v1		#   point to free
-	sw $t7, DATASIZE($t6)	#   tmptr.data = N;
+	sw $t7, DATASIZE($t0)	#   tmptr.data = N;
 if:	bne $a1, $0, else	#   if listptr == Nil or N < listptr.data 
 	lw $t0, DATASIZE($a1)	#   $t0 = listptr.data
 	sgt $t1, $t0, $t7  	#   { $t1 = 1 if  N < listptr.data; 0 otherwise
 	beq $t1, $0, else	
-	sw $a1, NODESIZE($t6)	#      tmpptr.next = listptr
-	sw $t6,	0($a1)		#      listptr = tmpptr
+	sw $a1, NEXT($t0)	#      tmpptr.next = listptr
+	sw $t0,	0($a1)		#      listptr = tmpptr
 				#   }
-else:				# else 
-	move $t2, $a1		#	curptr = listptr
+else:	move $t2, $a1		# else curptr = listptr
 while:				# while curptr.next != Nil and curptr.next.data <= N
-	lw $t3, NODESIZE($t2)   #	t3 = curptr.next
+	lw $t3, NEXT($t2)   	#	t3 = curptr.next
 	lw $t4, DATASIZE($t3)   #	t4 = curptr.next.data
 
 	beq $t3, $0, w_end
 	sgt $t5, $t4, $t7	# 	t5 = curptr.next.data > N
 	bne $t5, $0, w_end 
 				#      {
-	sw $t3, 0($t2)		#         curptr = curptr.next
+	sw $t3, NEXT($t2)	#         curptr = curptr.next
 				#      }
 w_end:				#
-	sw $t3, NODESIZE($t6)	#      tmpptr.next = curptr.next
-	sw $t6, 0($t3)		#      curptr.next = tmpptr
+	sw $t3, NEXT($t0)	#      tmpptr.next = curptr.next
+	sw $t0, NEXT($t3)	#      curptr.next = tmpptr
 				#   }
-	move $v0, $a1		#   return listptr
+done2:	move $v0, $a1		#   return listptr
 	move $v1, $a2		# v1 = pointer to free
+	lw $ra, 0($sp)		# pop $ra from stack
+	addi $sp, $sp, 8	# reset stack 
 	jr $ra			#}
 
 ##print_arr
@@ -182,17 +191,18 @@ w_end:				#
 ##	$a1: parameter: size of arr 
 ##	$t2: temporary copy of current array element
 ##	$t0: a0 from first call to print_arr 
-print: 
-	add $t0, $0, $a0 
-        li $t3, 0		# initialize counter
+print:  move $t0, $a0 
         j w_test2               # jump to test 
 next:   
-	lw $t2, 0($t0)       	# get next array element
-	add $a0, $0, $t2 	# move integer to be printed into $a0:  $a0 = $t2
-	li $v0, 1 		# syscall to print int
+	lw $t2, DATASIZE($t0)   # get next array element
+	move $a0, $t2 	        # move integer to be printed into $a0:  $a0 = $t2
+	li $v0, PR_INT 		# syscall to print int
 	syscall			# call operating system to perform print
-        addi $t0, $t0, 4      	# point to next word
-        addi $t3, $t3, 1     	# count++
+        
+	li $v0, PR_STR
+	la $a0, spce
+	syscall
+	lw $t0, NEXT($t0)
 w_test2:
-	blt $t3, $a1, next    	# while t3 < len(arr) do
+	bne $t0, $s7, next    	# while t3 < len(arr) do
 	jr $ra
