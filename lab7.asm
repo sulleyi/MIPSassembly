@@ -44,13 +44,6 @@ main:   addi $sp, $sp, -4
         li $a1, HEAPSIZE	#      and its size
         li $a2, NODESIZE 	#      and the size of a node
         jal mknodes
-
-
-###   Insert the values in the input array by calling insert for each one.
-###   When the insertion is done, store the list pointer in the list variable
-###   and then call a subroutine to traverse the list and print its contents
-###   REMOVE these comment lines before turning in the program.
-
 	la $s0, input
 	lw $a0, 0($s0) #load first N
 	move $a1, $s7   #initially our linked list will be empty (nil)
@@ -112,11 +105,14 @@ mkloop: sub $t1, $t0, $a2       # t1 points to previous node-sized block
 #    $v0: the node we have "created" (pulled off the stack from free)
 #    $v1: the new value of free (we don't want to clobber $a0 when we change free, right? right?)
 new:
-	lw $t0, 0($a0)		# load value at first free node
-	move $v0, $t0 		# move value in free node to v0
-	beq $t0, $0, nil	# branch if first free value is NIL
-	addi $v1, $a0, NODESIZE	# point to next free node
-nil:	move $v1, $a0		# if the value in the first free node is NIL, it is still free.
+	bne $a0, NIL, nil	# branch if first free value is not NIL
+	move $v0, $s7
+	move $v1, $s7
+	j nil
+	move $v0, $a0
+	lw $v1, NEXT($a0)		# load value at first free node
+	sw $v0, NEXT($v0)		# point to next free node
+nil:	# if the value in the first free node is NIL, it is still free.
 	jr $ra	
 
 
