@@ -154,27 +154,27 @@ insert:				#   insert(int N, Node *listptr)
 	move $a0, $a2		#   $a0 = ptr to free
 	jal new			#   v0 = new Node();
 	lw $a0, 4($sp)          #   restore $a0 from stack
+	beq $v0, $s7, node
 	move $t0, $v0		#   $t0 = tmpptr
+	sw $a0, DATA($t0)	#   tmpptr.data = N
 	move $a2, $v1		#   point to free
 	sw $t7, DATASIZE($t0)	#   tmptr.data = N;
-if:	bne $a1, $0, else	#   if listptr == Nil or N < listptr.data 
+	beq $a1, $s7, if	#   if listptr == Nil or N < listptr.data 
 	lw $t0, DATASIZE($a1)	#   $t0 = listptr.data
 	sgt $t1, $t0, $t7  	#   { $t1 = 1 if  N < listptr.data; 0 otherwise
 	beq $t1, $0, else	
-	sw $a1, NEXT($t0)	#      tmpptr.next = listptr
-	sw $t0,	0($a1)		#      listptr = tmpptr
-				#   }
+if:	sw $a1, NEXT($t0)	#      tmpptr.next = listptr
+	move $a1, $t0		#      listptr = tmpptr
+	j done2			#   }
 else:	move $t2, $a1		# else curptr = listptr
 while:				# while curptr.next != Nil and curptr.next.data <= N
 	lw $t3, NEXT($t2)   	#	t3 = curptr.next
 	lw $t4, DATASIZE($t3)   #	t4 = curptr.next.data
-
-	beq $t3, $0, w_end
-	sgt $t5, $t4, $t7	# 	t5 = curptr.next.data > N
-	bne $t5, $0, w_end 
+	beq $t3, $s7, w_end
+	blt $a0, $t4, w_end 
 				#      {
-	sw $t3, NEXT($t2)	#         curptr = curptr.next
-				#      }
+	move $t2, $t3		#         curptr = curptr.next
+	j while			#      }
 w_end:				#
 	sw $t3, NEXT($t0)	#      tmpptr.next = curptr.next
 	sw $t0, NEXT($t3)	#      curptr.next = tmpptr
@@ -184,6 +184,17 @@ done2:	move $v0, $a1		#   return listptr
 	lw $ra, 0($sp)		# pop $ra from stack
 	addi $sp, $sp, 8	# reset stack 
 	jr $ra			#}
+node:	addi $sp, $sp, -8       #   allocate space on the stack
+        sw $v0, 0($sp)		#   push $ra to the stack
+        sw $a0, 4($sp)          #   push $a0 to stack
+	li $v0, PR_STR
+	la $a0, nofree
+	syscall
+	lw $a0, 4($sp)
+	lw $v0, 0($sp)
+	addi $sp, $sp, 8
+	j done2
+
 
 ##print_arr
 ## register use:
