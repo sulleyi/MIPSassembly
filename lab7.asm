@@ -37,34 +37,33 @@ sorted: .asciiz "\nSorted List: "
 
         .align 2
         .text
-main:   addi $sp, $sp, -4
-        sw $ra, 0($sp)
+main:   addi $sp, $sp, -4	
+        sw $ra, 0($sp)		# save $ra to the stack
         li $s7, NIL             # global variable holding the NIL value
         la $a0, heap            # pass the heap address to mknodes
-        li $a1, HEAPSIZE	#      and its size
-        li $a2, NODESIZE 	#      and the size of a node
-        jal mknodes
-	la $s0, input
-	lw $a0, 0($s0) #load first N
-	move $a1, $s7   #initially our linked list will be empty (nil)
-	move $a2, $v0  #presuming $v0 contains a pointer to free after mknodes is called 
-	beq $a0, $0, done	
-	jal insert
-	addi $s1, $0, 1 # increment index counter
-iter:	sll $s2, $s1, 2  # increment byte counter
-	add $s2, $s0, $s2# start add + index byte offset
-	lw $a0, 0($s2)   #load value at current index
-	move $a1, $v0   #initially our linked list will be empty (nil)
-	move $a2, $v1  #presuming $v0 contains a pointer to free after mknodes is called 
-	beq $a0, $s7, done	
-	jal insert
-	addi $s1, $s1, 1
-	j iter
-done:   move $a0, $v0
-	jal print
-	lw $ra, 0($sp)
-        addi $sp, $sp, 4
-        jr $ra
+        li $a1, HEAPSIZE	# and its size
+        li $a2, NODESIZE 	# and the size of a node
+        jal mknodes		# initialize nodes
+	la $s0, input		# load address of array of numbers to insert
+	lw $a0, 0($s0) 		# load first N
+	move $a1, $s7   	# initially our linked list will be empty (nil)
+	move $a2, $v0  		# presuming $v0 contains a pointer to free after mknodes is called 
+	jal insert		# call insert subroutine on first N
+	addi $s1, $0, 1		# initializw index counter
+iter:	sll $s2, $s1, 2  	# increment byte counter
+	add $s2, $s0, $s2	# start add + index byte offset
+	lw $a0, 0($s2)   	# load value at current index
+	move $a1, $v0  		# initially our linked list will be empty (nil)
+	move $a2, $v1  		# presuming $v0 contains a pointer to free after mknodes is called 
+	beq $a0, $s7, done	# we are done if a0 is NIL
+	jal insert		# otherwise, insert again
+	addi $s1, $s1, 1	# increment index counter
+	j iter			# iterate again
+done:   move $a0, $v0		# move output to a0 for printing
+	jal print		# call print subroutine
+	lw $ra, 0($sp)		# pop $ra from stack
+        addi $sp, $sp, 4	# reset stack pointer
+        jr $ra			# return
 
 # mknodes takes a heap address in a0, its byte-size in a1, and node size in a2
 #  and partitions it into a singly-linked list of nodesize
@@ -86,7 +85,7 @@ done:   move $a0, $v0
 # $v0: points to the first free node in the heap
 mknodes:
         add $t0, $a0, $a1       # t0 starts by pointing to the last
-        sub $t0, $t0, $a2       #   node-sized block in the heap
+        sub $t0, $t0, $a2       # node-sized block in the heap
         move  $v0, $t0          # set output v0 to point to that first node
 mkloop: sub $t1, $t0, $a2       # t1 points to previous node-sized block
         sw  $t1, NEXT($t0)      # link the t0->node to point to t1 node
@@ -105,14 +104,14 @@ mkloop: sub $t1, $t0, $a2       # t1 points to previous node-sized block
 #    $v1: the new value of free (we don't want to clobber $a0 when we change free, right? right?)
 new:
 	bne $a0, NIL, free	# branch if first free value is not NIL
-	move $v0, $s7
-	move $v1, $s7
-	j nil
-free:	move $v0, $a0
-	lw $v1, NEXT($a0)		# load value at first free node
-	sw $v0, NEXT($v0)		# point to next free node
-nil:	# if the value in the first free node is NIL, it is still free.
-	jr $ra	
+	move $v0, $s7		# else, node is NIL
+	move $v1, $s7		# and free is NIL
+	j rtn			# return
+free:	move $v0, $a0		
+	lw $v1, NEXT($a0)	# load value at first free node
+	sw $v0, NEXT($a0)	# point to next free node
+rtn:	# if the value in the first free node is NIL, it is still free.
+	jr $ra	# return
 
 
 #insert behaves as described in the lab text
@@ -149,7 +148,7 @@ insert:				#   insert(int N, Node *listptr)
 	move $a0, $a2		#   $a0 = ptr to free
 	jal new			#   v0 = new Node();
 	lw $a0, 4($sp)          #   restore $a0 from stack
-	beq $v0, $s7, node
+	beq $v0, $s7, node	#   if new() retrun NIL
 	move $t0, $v0		#   $t0 = tmpptr
 	sw $a0, DATASIZE($t0)	#   tmptr.data = N;
 	beq $a1, $s7, if	#   if listptr == Nil or N < listptr.data 
@@ -174,12 +173,12 @@ w_end:	lw $t5, NEXT($t2)	#
 done2:	move $v0, $a1		#   return listptr
 	lw $ra, 0($sp)		# pop $ra from stack
 	addi $sp, $sp, 8	# reset stack 
-	jr $ra			#}
+	jr $ra			# return
 node:	addi $sp, $sp, -8       #   allocate space on the stack
         sw $v0, 0($sp)		#   push $ra to the stack
         sw $a0, 4($sp)          #   push $a0 to stack
-	li $v0, PR_STR
-	la $a0, nofree
+	li $v0, PR_STR		#   end of routine printing
+	la $a0, nofree	
 	syscall
 	lw $a0, 4($sp)
 	lw $v0, 0($sp)
@@ -189,22 +188,21 @@ node:	addi $sp, $sp, -8       #   allocate space on the stack
 
 ##print_arr
 ## register use:
-##	$a0: parameter: array addr; used as pointer to current element
-##	$a1: parameter: size of arr 
-##	$t2: temporary copy of current array element
+##	$a0: parameter: pointer to heap
+##	$t2: data word 
 ##	$t0: a0 from first call to print_arr 
 print:  move $t0, $a0 
         j w_test2               # jump to test 
 next:   
-	lw $t2, DATASIZE($t0)   # get next array element
+	lw $t2, DATASIZE($t0)   # get next data word
 	move $a0, $t2 	        # move integer to be printed into $a0:  $a0 = $t2
 	li $v0, PR_INT 		# syscall to print int
 	syscall			# call operating system to perform print
         
-	li $v0, PR_STR
+	li $v0, PR_STR		#mpre printing
 	la $a0, spce
 	syscall
 	lw $t0, NEXT($t0)
 w_test2:
-	bne $t0, $s7, next    	# while t3 < len(arr) do
-	jr $ra
+	bne $t0, $s7, next    	# while not NIL
+	jr $ra			# return
